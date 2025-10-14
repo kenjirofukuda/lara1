@@ -1,0 +1,11 @@
+#+:title 開発記録
+
+* tailwinds
+- https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/4
+- https://tailwindcss.com/plus/ui-blocks/application-ui/application-shells/stacked
+
+** CDN によるスタイルの適用
+- https://tailwindcss.com/docs/installation/play-cdn
+** おすすめできない理由
+ - https://qiita.com/kohki_takatama/items/3f2ebbf7f124acc56ad8
+
