@@ -1,4 +1,4 @@
-#+:title 開発記録
+#+title: 開発記録
 
 * tailwinds
 - https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/4
@@ -12,6 +12,7 @@
 
 ** 消化済みのコース
 * laracssts
+- https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/9
 - https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/8
 - https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/7
 - https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/6
