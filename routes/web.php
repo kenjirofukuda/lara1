@@ -6,6 +6,7 @@ use \App\Models\Job;
 
 Route::get('/', function () {
     return view('home', ['greeting' => 'Yo', 'name' => 'Kenjiro Fukuda']);
+    // dd(Job::find(1));
 });
 
 Route::get('/about', function () {
