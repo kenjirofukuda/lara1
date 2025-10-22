@@ -1,0 +1,118 @@
+#+title: BelongsToMany
+#+auther: kenjirofukuda
+#+options: toc:nil num:nil ^:nil
+#+HTML_HEAD_EXTRA: <style> .figure p {text-align: left;}</style>
+#+HTML_HEAD_EXTRA: <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js"></script>
+
+多対多の関係を正しく理解しているか？
+
+* 自分なりの解釈
+
+| 立場           | 立場1         | 立場2         |
+|----------------+---------------+---------------|
+| 上下関係がある | *Employer*    | *Job*         |
+|                | hasMany       | belongsTo     |
+|----------------+---------------+---------------|
+| 対等である     | *Job*         | *Tag*         |
+|                | belongsTomany | belongsTomany |
+
+#+BEGIN_EXPORT html
+<pre class="mermaid">
+erDiagram
+	direction LR
+	Employer {
+	}
+	Job {
+	}
+	Tag {
+	}
+	Employer||--|{Job:""
+	Job}|--|{Tag:""
+</pre>
+#+END_EXPORT
+
+そもそもリレーショナル・データベースでは多対多は中間テーブルを採用するのがセオリーである。
+
+* ログ
+
+まずは、存在しないエンティティ Tag の追加
+#+begin_src bash
+  $ artisan make:model -mf     # migrate, and factory
+#+end_src
+
+#+begin_src
+   INFO  Model [app/Models/Tag.php] created successfully.
+
+   INFO  Factory [database/factories/TagFactory.php] created successfully.
+
+   INFO  Migration [database/migrations/2025_10_22_005338_create_tags_table.php] created successfully.
+#+end_src
+
+Tagのマイグレーションにフィールド ~name~ を追加
+
+次に JobとTagを関連付けるためのテーブルを定義する。規約により互いの単数形をアンダースコアで接続したテーブル名を採用する。
+ここでは ~job_tag~ となる。
+
+マイグレーションファイルの up() に以下を追加
+#+begin_src php
+        // PIVOT between Job and Tag
+        Schema::create('job_tag', function (Blueprint $table) {
+            $table->id();
+            $table->foreignIdFor(App\Models\Job::class);
+            $table->foreignIdFor(App\Models\Tag::class);
+            $table->timestamps();
+        });
+#+end_src
+
+ここで反映させるため、artisan migrate を実行
+
+#+begin_src bash :tangle yes :results raw
+ test "lara1" = $(basename $(echo $PWD)) && artisan migrate
+#+end_src
+
+
+* クッションテーブルの必要性
+<2025-10-22 Wed>
+
+why laravel belongsToMany implements needs cushion table
+
+Googleに上記質問を投げかけた。
+
+ピボットテーブル、または「クッションテーブル」は、belongsToMany多対多の関係を解決するための標準的なデータベースレベルのソリューションであるため、この中間テーブルは多対多の関係に使用されます。この中間テーブルがなければ、2つのテーブルのみを使用してデータを正しく表現することは不可能です。
+
+** ピボットテーブルが多対多の問題を解決する方法
+~Users~ 次のような典型的な多対多の関係を想像してください ~Roles~ 。
+- 1 人のユーザーが複数の役割を持つことができます。
+- 1 つのロールを複数のユーザーに割り当てることができます。
+この関係は、データベースの正規化ルールに違反することなく、2 つのテーブル (~users~ と ~roles~) だけで直接表現することはできません。
+
+** 問題のある解決策（そしてそれが失敗する理由）
+**** オプション1：テーブルrole_idに列を追加しますusers。
+これにより1対多の関係が作成されますが、ユーザーは を1つしか持つことができませんrole_id。2つ目のロールを追加するには、 などの別の列を追加する必要がありますがrole_id_2、これはスケーラブルではありません。
+
+**** オプション2：テーブルuser_idに列を追加するroles。
+同様に、各ロールは1人のユーザーにしかリンクできないため、この方法も失敗します。別のユーザーにリンクするには、別の列を追加する必要があり ~user_id~ 、これもスケーラブルではありません。
+
+** ピボットテーブルを使ったソリューション
+**** ピボットrole_userテーブル。
+3つ目の中間テーブル ~role_user~ が作成されます。
+このテーブルには、両方のテーブルの外部キー（ ~role_id~ と）が含まれます ~user_id~ 。
+**** ピボットrole_userテーブル（続き）。
+各接続を個別の行として保存することで、ピボットテーブルでは無制限の組み合わせが可能になります。例えば、ユーザーは（）と（ ）のどちら1にもなり得ます。adminrole_id: 1moderatorrole_id:
+
+
+*** 2ピボットテーブルを使用する利点
+**** データの整合性と正規化
+ピボットテーブルは、テーブルusersとrolesテーブルを「クリーン」に保ち、それぞれのデータに焦点を当てます。データベースのベストプラクティスに従い、関係データを専用のテーブルに分離します。
+
+**** 追加のメタデータを保存
+2つのモデル間の関係は、単なる接続以上のものであることがよくあります。
+ピボットテーブルには、特定の接続に関連する追加の列を保存できます。例えば、ロールが割り当てられた時点の列やタイムスタンプをuser_roleテーブルに保存できます。status
+
+**** 強力なEloquent機能
+LaravelのbelongsToManyリレーションシップとそれに関連するメソッド（attach()、detach()、 などsync()）は、この中間テーブルを自動的に管理するために特別に構築されています。これにより、コード内で簡潔で表現力豊かな構文を記述でき、リレーションシップを手動で管理する際の複雑さを抽象化できます。
+
+
+
+* その他のリンク
+- [[https://medium.com/@emmanuelfortuna68/belongstomany-in-laravel-8401b4f533aa][BelongsToMany in Laravel]]
