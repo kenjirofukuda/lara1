@@ -22,5 +22,9 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
-/NOTE.html
-/README.html
+/NOTE.*
+/README.*
+/BelongsToMany.*
+!NOTE.org
+!README.org
+!BelongsToMany.org

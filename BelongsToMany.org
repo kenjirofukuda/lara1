@@ -31,7 +31,7 @@ erDiagram
 </pre>
 #+END_EXPORT
 
-#+begin_src mermaid :tangle no :eval no-export
+#+begin_src mermaid :tangle no :eval no-export :file er.svg
 erDiagram
 	direction LR
 	Employer {
@@ -114,10 +114,11 @@ job_tag
 
 両方のフィールドに =constrained()->cascadeOnDelete()= を付加
 
-=cascadeOnDelete()= は =deleteOn('cascade')= と等価である。
+| ラッパー        | 実態                        |                                                                                    |
+|-----------------+-----------------------------+------------------------------------------------------------------------------------|
+| constrained()   | constrained('job_listings') |                                                                                    |
+| cascadeOnDelete | deleteOn('cascade')         | 親テーブルのデータの削除に伴い、それを外部キーとしているデータも削除するという制約 |
 
-| constrained     |
-| cascadeOnDelete |
 
 upにjob_tagを追加したのでdown側も対応をとる必要があります。
 #+begin_src diff
@@ -132,8 +133,22 @@ upにjob_tagを追加したのでdown側も対応をとる必要があります�
 
 定義が完了したのでここで一度更新します。
 
-#+begin_src bash :tangle no :results
+#+begin_src bash :tangle no :results org
  test "lara1" = $(basename $(echo $PWD)) && artisan migrate:rollback && artisan migrate
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+
+   INFO  Rolling back migrations.
+
+  2025_10_22_005338_create_tags_table ........................... 19.78ms DONE
+
+
+   INFO  Running migrations.
+
+  2025_10_22_005338_create_tags_table ........................... 22.40ms DONE
+
 #+end_src
 
 
@@ -147,15 +162,144 @@ PRAGMA table_info(job_tag);
 EOF
 #+end_src
 
-+-----+----------------+----------+---------+------------+----+
-| cid |      name      |   type   | notnull | dflt_value | pk |
-+-----+----------------+----------+---------+------------+----+
-| 0   | id             | INTEGER  | 1       |            | 1  |
-| 1   | job_listing_id | INTEGER  | 1       |            | 0  |
-| 2   | tag_id         | INTEGER  | 1       |            | 0  |
-| 3   | created_at     | datetime | 0       |            | 0  |
-| 4   | updated_at     | datetime | 0       |            | 0  |
-+-----+----------------+----------+---------+------------+----+
+| cid | name           | type     | notnull | dflt_value | pk |
+|-----+----------------+----------+---------+------------+----|
+|   0 | id             | INTEGER  |       1 |            |  1 |
+|   1 | job_listing_id | INTEGER  |       1 |            |  0 |
+|   2 | tag_id         | INTEGER  |       1 |            |  0 |
+|   3 | created_at     | datetime |       0 |            |  0 |
+|   4 | updated_at     | datetime |       0 |            |  0 |
+
+
+@see [[https://readouble.com/laravel/12.x/ja/migrations.html#toggling-foreign-key-constraints][外部キー制約の切り替え]]
+
+#+begin_quote
+⚠ Warning! SQLiteは、デフォルトで外部キー制約を無効にします。SQLiteを使用する場合は、マイグレーションでデータベースを作成する前に、データベース設定の外部キーサポートを有効にするを確実に行ってください。
+#+end_quote
+
+
+ビデオでは、Tableの定義に、foreign key の表記が見られたが出てこなかった。うまく更新できていないのかもしれない。
+
+#+begin_src bash :tangle no :results org
+ test "lara1" = $(basename $(echo $PWD)) && artisan migrate:refresh
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+
+   INFO  Rolling back migrations.
+
+  2025_10_22_005338_create_tags_table ........................... 22.43ms DONE
+  2025_10_16_174339_create_employers_table ....................... 6.47ms DONE
+  2025_10_16_013633_create_posts_table ........................... 6.79ms DONE
+  2025_10_15_225729_create_job_listings_table .................... 6.80ms DONE
+  0001_01_01_000002_create_jobs_table ........................... 20.68ms DONE
+  0001_01_01_000001_create_cache_table .......................... 13.82ms DONE
+  0001_01_01_000000_create_users_table .......................... 20.78ms DONE
+
+
+   INFO  Running migrations.
+
+  0001_01_01_000000_create_users_table .......................... 43.47ms DONE
+  0001_01_01_000001_create_cache_table .......................... 13.96ms DONE
+  0001_01_01_000002_create_jobs_table ........................... 37.01ms DONE
+  2025_10_15_225729_create_job_listings_table ................... 10.84ms DONE
+  2025_10_16_013633_create_posts_table ........................... 6.95ms DONE
+  2025_10_16_174339_create_employers_table ....................... 7.90ms DONE
+  2025_10_22_005338_create_tags_table ........................... 15.88ms DONE
+
+#+end_src
+
+以下の設定が必要らしい
+#+begin_example
+PRAGMA foreign_keys=on;
+#+end_example
+
+
+
+#+begin_src bash :results raw drawer :tangle yes :eval no-export
+sqlite3 ./database/database.sqlite <<EOF
+.mode table
+PRAGMA pragma_list;
+.quit
+EOF
+#+end_src
+
+
+#+begin_example
++---------------------------+
+|           name            |
++---------------------------+
+| analysis_limit            |
+| application_id            |
+| auto_vacuum               |
+| automatic_index           |
+| busy_timeout              |
+| cache_size                |
+| cache_spill               |
+| case_sensitive_like       |
+| cell_size_check           |
+| checkpoint_fullfsync      |
+| collation_list            |
+| compile_options           |
+| count_changes             |
+| data_version              |
+| database_list             |
+| default_cache_size        |
+| defer_foreign_keys        |
+| empty_result_callbacks    |
+| encoding                  |
+| foreign_key_check         |
+| foreign_key_list          |
+| foreign_keys              | # <-----
+| freelist_count            |
+| full_column_names         |
+| fullfsync                 |
+| function_list             |
+| hard_heap_limit           |
+| ignore_check_constraints  |
+| incremental_vacuum        |
+| index_info                |
+| index_list                |
+| index_xinfo               |
+| integrity_check           |
+| journal_mode              |
+| journal_size_limit        |
+| legacy_alter_table        |
+| locking_mode              |
+| max_page_count            |
+| mmap_size                 |
+| module_list               |
+| optimize                  |
+| page_count                |
+| page_size                 |
+| pragma_list               |
+| query_only                |
+| quick_check               |
+| read_uncommitted          |
+| recursive_triggers        |
+| reverse_unordered_selects |
+| schema_version            |
+| secure_delete             |
+| short_column_names        |
+| shrink_memory             |
+| soft_heap_limit           |
+| synchronous               |
+| table_info                |
+| table_list                |
+| table_xinfo               |
+| temp_store                |
+| temp_store_directory      |
+| threads                   |
+| trusted_schema            |
+| user_version              |
+| wal_autocheckpoint        |
+| wal_checkpoint            |
+| writable_schema           |
++---------------------------+
+#+end_example
+
+
 
 * クッションテーブルの必要性
 <2025-10-22 Wed>
