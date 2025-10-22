@@ -31,6 +31,19 @@ erDiagram
 </pre>
 #+END_EXPORT
 
+#+begin_src mermaid :tangle no
+erDiagram
+	direction LR
+	Employer {
+	}
+	Job {
+	}
+	Tag {
+	}
+	Employer||--|{Job:""
+	Job}|--|{Tag:""
+#+end_src
+
 そもそもリレーショナル・データベースでは多対多は中間テーブルを採用するのがセオリーである。
 
 * ログ
@@ -66,7 +79,7 @@ Tagのマイグレーションにフィールド ~name~ を追加
 
 ここで反映させるため、artisan migrate を実行
 
-#+begin_src bash :tangle yes :results raw
+#+begin_src bash :tangle no :results raw
  test "lara1" = $(basename $(echo $PWD)) && artisan migrate
 #+end_src
 
