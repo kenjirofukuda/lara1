@@ -20,8 +20,8 @@ return new class extends Migration
         // PIVOT between Job and Tag
         Schema::create('job_tag', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(App\Models\Job::class, 'job_listing_id');
-            $table->foreignIdFor(App\Models\Tag::class);
+            $table->foreignIdFor(App\Models\Job::class, 'job_listing_id')->constraind()->cascadeOnDelete();
+            $table->foreignIdFor(App\Models\Tag::class)->constraind()->cascadeOnDelete();
             $table->timestamps();
         });
     }
@@ -32,5 +32,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('tags');
+        Schema::dropIfExists('job_tag');
     }
 };

@@ -31,8 +31,8 @@ erDiagram
 </pre>
 #+END_EXPORT
 
-#+begin_src mermaid :tangle no
-erDiagram
+#+begin_src mermaid :tangle no :eval no-export
+oerDiagram
 	direction LR
 	Employer {
 	}
@@ -71,7 +71,7 @@ Tagのマイグレーションにフィールド ~name~ を追加
         // PIVOT between Job and Tag
         Schema::create('job_tag', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(App\Models\Job::class);
+            $table->foreignIdFor(App\Models\Job::class, 'job_listing_id');
             $table->foreignIdFor(App\Models\Tag::class);
             $table->timestamps();
         });
@@ -83,6 +83,82 @@ Tagのマイグレーションにフィールド ~name~ を追加
  test "lara1" = $(basename $(echo $PWD)) && artisan migrate
 #+end_src
 
+
+tags
+| id | name        |
+|----+-------------|
+|  1 | programming |
+
+
+job_tag
+| id | job_listing_id | tag_id |
+|----+----------------+--------|
+|  1 |             10 |      1 |
+
+今、job_tag が tag_id = 1 としてリンク情報を保持していても、tags.id = 1 が削除できてしまう。
+これではデータの整合性が取れない。何らかの対策が必要
+
+#+begin_src diff
+@@ -20,8 +20,8 @@ public function up(): void
+         // PIVOT between Job and Tag
+         Schema::create('job_tag', function (Blueprint $table) {
+             $table->id();
+-            $table->foreignIdFor(App\Models\Job::class, 'job_listing_id');
+-            $table->foreignIdFor(App\Models\Tag::class);
++            $table->foreignIdFor(App\Models\Job::class, 'job_listing_id')->constraind()->cascadeOnDelete();
++            $table->foreignIdFor(App\Models\Tag::class)->constraind()->cascadeOnDelete();
+             $table->timestamps();
+         });
+     }
+#+end_src
+
+両方のフィールドに =constrained()->cascadeOnDelete()= を付加
+
+=cascadeOnDelete()= は =deleteOn('cascade')= と等価である。
+
+| constrained     |
+| cascadeOnDelete |
+
+upにjob_tagを追加したのでdown側も対応をとる必要があります。
+#+begin_src diff
+@@ -32,5 +32,6 @@ public function up(): void
+     public function down(): void
+     {
+         Schema::dropIfExists('tags');
++        Schema::dropIfExists('job_tag');
+     }
+ };
+#+end_src
+
+定義が完了したのでここで一度更新します。
+
+#+begin_src bash :tangle no :results
+ test "lara1" = $(basename $(echo $PWD)) && artisan migrate:rollback && artisan migrate
+#+end_src
+
+
+ここまでしても、まだ関連するレコードが削除できてしまいます。
+
+#+begin_src bash :results raw drawer :tangle yes :eval no-export
+sqlite3 ./database/database.sqlite <<EOF
+.mode table
+PRAGMA table_info(job_tag);
+.quit
+EOF
+#+end_src
+
+#+RESULTS:
+:results:
++-----+----------------+----------+---------+------------+----+
+| cid |      name      |   type   | notnull | dflt_value | pk |
++-----+----------------+----------+---------+------------+----+
+| 0   | id             | INTEGER  | 1       |            | 1  |
+| 1   | job_listing_id | INTEGER  | 1       |            | 0  |
+| 2   | tag_id         | INTEGER  | 1       |            | 0  |
+| 3   | created_at     | datetime | 0       |            | 0  |
+| 4   | updated_at     | datetime | 0       |            | 0  |
++-----+----------------+----------+---------+------------+----+
+:end:
 
 * クッションテーブルの必要性
 <2025-10-22 Wed>
