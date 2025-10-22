@@ -32,7 +32,7 @@ erDiagram
 #+END_EXPORT
 
 #+begin_src mermaid :tangle no :eval no-export
-oerDiagram
+erDiagram
 	direction LR
 	Employer {
 	}
@@ -147,8 +147,6 @@ PRAGMA table_info(job_tag);
 EOF
 #+end_src
 
-#+RESULTS:
-:results:
 +-----+----------------+----------+---------+------------+----+
 | cid |      name      |   type   | notnull | dflt_value | pk |
 +-----+----------------+----------+---------+------------+----+
@@ -158,7 +156,6 @@ EOF
 | 3   | created_at     | datetime | 0       |            | 0  |
 | 4   | updated_at     | datetime | 0       |            | 0  |
 +-----+----------------+----------+---------+------------+----+
-:end:
 
 * クッションテーブルの必要性
 <2025-10-22 Wed>
