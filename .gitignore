@@ -28,3 +28,5 @@ Thumbs.db
 !NOTE.org
 !README.org
 !BelongsToMany.org
+/.tool-versions
+/.projectile
