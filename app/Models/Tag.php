@@ -12,6 +12,6 @@ class Tag extends Model
 
     function jobs()
     {
-        $this->belongsToMany(Tag::class);
+        return $this->belongsToMany(Job::class, relatedPivotKey: 'job_listing_id');
     }
 }
