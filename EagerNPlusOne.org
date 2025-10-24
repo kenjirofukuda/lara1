@@ -1,0 +1,125 @@
+#+title: Eager Loading and the N+1 Problem
+#+auther: kenjirofukuda
+#+options: toc:nil num:nil ^:nil
+#+HTML_HEAD_EXTRA: <style> .figure p {text-align: left;}</style>
+#+HTML_HEAD_EXTRA: <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js"></script>
+
+- @see https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/13
+
+
+* 求人情報の表示の改善
+#+begin_quote
+まず、求人情報の表示画面を更新し、Tailwind CSSユーティリティでスタイル設定されたアンカータグを使用して、各求人をクリック可能なカードとして表示するようにしました。見た目を向上させるため、パディング、境界線、カード間のスペース、丸みのある角を追加しました。
+
+employerまた、職務モデルの関係にアクセスして、各職名の上に雇用主の名前を表示しました。
+#+end_quote
+
+** job リスティングの改善
+#+begin_src diff
+@@ -2,13 +2,12 @@
+     <x-slot:heading>
+         Job Listing
+     </x-slot:heading>
+-    <ul>
++    <div class="space-y-4">
+         @foreach ($jobs as $job)
+-            <li>
+-                <a href = "/job/{{ $job['id'] }}" class="text-blue-500 hover:underline">
+-                    <strong>{{ $job['title'] }}:</strong> Pays {{ $job['salary'] }} per year.
+-                </a>
+-            </li>
++            <a href = "/job/{{ $job['id'] }}" class="block px-4 py-6 border border-gray-200 rounded-lg">
++                <div class="font-bold text-blue-500 text-sm">{{ $job->employer->name }}</div>
++                <strong>{{ $job['title'] }}:</strong> Pays {{ $job['salary'] }} per year.
++            </a>
+         @endforeach
+-    </ul>
++    </div>
+ </x-layout>
+#+end_src
+
+* N+1問題を理解する
+#+begin_quote
+N+1 問題は、ループ内の関係の遅延読み込みにより、1 つのクエリでメイン レコード (N) が取得され、関連レコードごとに 1 つの追加クエリが実行され、結果としてクエリ数が増加し、パフォーマンスが低下する場合に発生します。
+
+たとえば、8 つの求人とその雇用主を取得すると、求人に対して 1 件、雇用主に対して 8 件の合計 9 件のクエリが生成されます。
+#+end_quote
+** デバッガーを用いて query を覗き見る
+- @see https://github.com/barryvdh/laravel-debugbar
+
+#+begin_src bash
+composer require barryvdh/laravel-debugbar --dev
+#+end_src
+
+.env
+#+begin_example
+APP_DEBUG=true
+#+end_example
+
+** イーガーローディングによるN+1問題の解決
+
+#+begin_quote
+イーガーローディングでは、関連するモデルを 1 回のクエリで事前に取得するため、クエリの数が削減されます。
+
+クエリを変更して、employer関係を積極的にロードします。
+#+end_quote
+
+#+begin_src diff
+@@ -18,7 +18,8 @@
+ });
+ 
+ Route::get('/jobs', function () {
+-    return View('jobs', ['jobs' => Job::all()]);
++    $jobs = Job::with('employer')->get();
++    return View('jobs', ['jobs' => $jobs]);
+ });
+ 
+ Route::get('/job/{id}', function ($id) {
+#+end_src
+
+
+修正前
+#+begin_example
+select * from "job_listings"
+select * from "employers" where "employers"."id" = 1 limit 1
+select * from "employers" where "employers"."id" = 2 limit 1
+select * from "employers" where "employers"."id" = 3 limit 1
+select * from "employers" where "employers"."id" = 4 limit 1
+select * from "employers" where "employers"."id" = 5 limit 1
+select * from "employers" where "employers"."id" = 6 limit 1
+select * from "employers" where "employers"."id" = 7 limit 1
+select * from "employers" where "employers"."id" = 8 limit 1
+select * from "employers" where "employers"."id" = 9 limit 1
+select * from "employers" where "employers"."id" = 10 limit 1
+#+end_example
+
+修正後
+#+begin_example
+select * from "job_listings"
+select * from "employers" where "employers"."id" in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+#+end_example
+
+* オプション: 遅延読み込みを無効にする
+
+#+begin_quote
+意図しないクエリをキャッチするために遅延読み込みを完全に無効にしたい場合は、次のようにします
+#+end_quote
+
+AppServiceProvider
+#+begin_src php
+use Illuminate\Database\Eloquent\Model;
+
+public function boot()
+{
+    Model::preventLazyLoading(!app()->isProduction());
+}
+#+end_src
+
+#+begin_quote
+これにより、遅延読み込みが発生するたびに例外がスローされ、開発中に N+1 の問題を特定して修正するのに役立ちます。
+#+end_quote
+
+* その他のリンク
+- @see [[https://zenn.dev/nshiro/articles/069ed399404934][Laravel 8.43.0 の Preventing Lazy Loading 機能で、N+1問題を早めに発見してみる]]
+- @see [[https://zenn.dev/masaharu110/articles/3ebfb1841b78e4][Laravel 12.8.0 で追加された自動リレーションロードで N+1 問題を解決]]
+

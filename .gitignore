@@ -29,8 +29,13 @@ Thumbs.db
 /NOTE.*
 /README.*
 /BelongsToMany.*
+/EagerNPlusOne.*
+
 !NOTE.org
 !README.org
 !BelongsToMany.org
+!EagerNPlusOne.org
+
 /.tool-versions
 /.projectile
+/storage/debugbar/

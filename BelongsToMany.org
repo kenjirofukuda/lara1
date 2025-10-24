@@ -4,6 +4,8 @@
 #+HTML_HEAD_EXTRA: <style> .figure p {text-align: left;}</style>
 #+HTML_HEAD_EXTRA: <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js"></script>
 
+- @see [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/12]]
+
 多対多の関係を正しく理解しているか？
 
 * 自分なりの解釈
@@ -53,13 +55,13 @@ erDiagram
   $ artisan make:model -mf     # migrate, and factory
 #+end_src
 
-#+begin_src
+#+begin_example
    INFO  Model [app/Models/Tag.php] created successfully.
 
    INFO  Factory [database/factories/TagFactory.php] created successfully.
 
    INFO  Migration [database/migrations/2025_10_22_005338_create_tags_table.php] created successfully.
-#+end_src
+#+end_example
 
 Tagのマイグレーションにフィールド ~name~ を追加
 
@@ -154,7 +156,7 @@ upにjob_tagを追加したのでdown側も対応をとる必要があります�
 
 ここまでしても、まだ関連するレコードが削除できてしまいます。
 
-#+begin_src bash :results raw drawer :tangle yes :eval no-export
+#+begin_src bash :results raw :tangle yes :eval no-export
 sqlite3 ./database/database.sqlite <<EOF
 .mode table
 PRAGMA table_info(job_tag);
@@ -300,7 +302,6 @@ EOF
 #+end_example
 
 
-
 * クッションテーブルの必要性
 <2025-10-22 Wed>
 
@@ -342,6 +343,116 @@ Googleに上記質問を投げかけた。
 **** 強力なEloquent機能
 LaravelのbelongsToManyリレーションシップとそれに関連するメソッド（attach()、detach()、 などsync()）は、この中間テーブルを自動的に管理するために特別に構築されています。これにより、コード内で簡潔で表現力豊かな構文を記述でき、リレーションシップを手動で管理する際の複雑さを抽象化できます。
 
+* 双方向のオブジェクトの取得
+
+** メソッドの追加
+
+テーブル名衝突回避のため、規約を破っているのでここでも例外的な修正が必要
+#+begin_src diff
+modified   app/Models/Job.php
+@@ -20,6 +20,6 @@ public function employer()
+ 
+     public function tags()
+     {
+-        return $this->belongsToMany(Tag::class);
++        return $this->belongsToMany(Tag::class, foreignPivotKey: 'job_listing_id');
+     }
+ }
+modified   app/Models/Tag.php
+@@ -12,6 +12,6 @@ class Tag extends Model
+ 
+     function jobs()
+     {
+-        $this->belongsToMany(Tag::class);
++        return $this->belongsToMany(Job::class, relatedPivotKey: 'job_listing_id');
+     }
+ }
+#+end_src
+
+** 呼び出し方による値の変化
+
+#+begin_example
+> get_class($tag->jobs);
+= "Illuminate\Database\Eloquent\Collection"
+
+> get_class($tag);
+= "App\Models\Tag"
+
+> get_class($tag->jobs());
+= "Illuminate\Database\Eloquent\Relations\BelongsToMany"
+
+> get_class($tag->jobs()->get());
+= "Illuminate\Database\Eloquent\Collection"
+#+end_example
+
+#+begin_example
+> $tag->jobs;
+= Illuminate\Database\Eloquent\Collection {#6580
+    all: [
+      App\Models\Job {#6559
+        id: 10,
+        employer_id: 10,
+        title: "Hotel Desk Clerk",
+        salary: "$50,000 USD",
+        created_at: "2025-10-22 07:59:41",
+        updated_at: "2025-10-22 07:59:41",
+        pivot: Illuminate\Database\Eloquent\Relations\Pivot {#6561
+          tag_id: 1,
+          job_listing_id: 10,
+        },
+      },
+    ],
+  }
+
+#+end_example
+
+#+begin_example
+> $tag->jobs();
+= Illuminate\Database\Eloquent\Relations\BelongsToMany {#6578
+    +withTimestamps: false,
+  }
+#+end_example
+
+* TagにJobを追加する
+#+begin_example
+> $tag->jobs()->attach(App\Models\Job::find(7));
+= null
+
+#+end_example
+
+#+begin_src bash :results raw code output :tangle yes :eval no-export :exports results
+sqlite3 ./database/database.sqlite <<EOF
+.mode table
+PRAGMA table_info(job_tag);
+.quit
+EOF
+#+end_src
+
+#+RESULTS:
+#+begin_src bash
++-----+----------------+----------+---------+------------+----+
+| cid |      name      |   type   | notnull | dflt_value | pk |
++-----+----------------+----------+---------+------------+----+
+| 0   | id             | INTEGER  | 1       |            | 1  |
+| 1   | job_listing_id | INTEGER  | 1       |            | 0  |
+| 2   | tag_id         | INTEGER  | 1       |            | 0  |
+| 3   | created_at     | datetime | 0       |            | 0  |
+| 4   | updated_at     | datetime | 0       |            | 0  |
++-----+----------------+----------+---------+------------+----+
+#+end_src
+
+
+#+begin_example
++-----+----------------+----------+---------+------------+----+
+| cid |      name      |   type   | notnull | dflt_value | pk |
++-----+----------------+----------+---------+------------+----+
+| 0   | id             | INTEGER  | 1       |            | 1  |
+| 1   | job_listing_id | INTEGER  | 1       |            | 0  |
+| 2   | tag_id         | INTEGER  | 1       |            | 0  |
+| 3   | created_at     | datetime | 0       |            | 0  |
+| 4   | updated_at     | datetime | 0       |            | 0  |
++-----+----------------+----------+---------+------------+----+
+#+end_example
 
 
 * その他のリンク

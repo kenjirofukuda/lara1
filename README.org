@@ -16,7 +16,7 @@ laracast の [[https://laracasts.com/series/30-days-to-learn-laravel-11][30 Days
 グローバル環境を18.20.4 (Debian 12) に戻していたことを忘れていた。
 ローカル環境を直近の安定バージョン 24.10.0 に戻しておく。
 
-#+begin_src
+#+begin_example
 [vite] You are using Node.js 18.20.4. Vite requires Node.js version 20.19+ or 22.12+. Please upgrade your Node.js version.[server]
 [server]    INFO  Server running on [http://127.0.0.1:8000].
 [server]
@@ -25,7 +25,7 @@ laracast の [[https://laracasts.com/series/30-days-to-learn-laravel-11][30 Days
 [vite] error when starting dev server:
 [vite] TypeError: crypto.hash is not a function
 [vite]     at getHash (file:///home/kenjiro/Nextcloud/prove/php-room/lara1/node_modules/vite/dist/node/chunks/dep-Chhhsdoe
-#+end_src
+#+end_example
 
 #+begin_src bash
   $ asdf install nodejs 24.10.0
@@ -33,10 +33,9 @@ laracast の [[https://laracasts.com/series/30-days-to-learn-laravel-11][30 Days
   $ node --version
   #+end_src
 
-#+begin_src
+#+begin_example
 v24.10.0
-#+end_src
-OK
+#+end_example
 
 * tailwinds
 楽に記述できるというだけで、css本来の意図に反していて気持ちが悪い。
@@ -53,23 +52,20 @@ OK
 
 * 消化済みのコース
 ** laracssts
-- now: [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/12]]
+- [[file:EagerNPlusOne.org]]
+- [[file:BelongsToMany.org]]
 - [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/11]]
 - [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/10]]
-- https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/9
-- https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/8
-- https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/7
-- https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/6
-- https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/5
-- https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/4
-- https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/3
-- https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/2
-- https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/1
+- [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/9]]
+- [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/8]]
+- [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/7]]
+- [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/6]]
+- [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/5]]
+- [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/4]]
+- [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/3]]
+- [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/2]]
+- [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/1]]
 
 * tableplus
 tableplus上のsqlite使用にてバグがあり、アプリケーションの再起動または電源アイコンボタンで一度閉じてから開き直さないと前回の状態が表示されたままとなる。
 コメント欄にて、https://sqlitebrowser.org/ を推奨されていた。
-
-* サブトピック
-
-- [[file:BelongsToMany.org]]
