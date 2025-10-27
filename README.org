@@ -52,8 +52,9 @@ v24.10.0
 
 * 消化済みのコース
 ** laracssts
-- [[file:EagerNPlusOne.org]]
-- [[file:BelongsToMany.org]]
+- [[file:Pagenation.org]] (14)
+- [[file:EagerNPlusOne.org]] (13)
+- [[file:BelongsToMany.org]] (12)
 - [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/11]]
 - [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/10]]
 - [[https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/9]]
