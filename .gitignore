@@ -30,14 +30,17 @@ Thumbs.db
 /README.*
 /BelongsToMany.*
 /EagerNPlusOne.*
+!DatabaseSeeder.*
+!Pagenation.*
 
 !NOTE.org
 !README.org
 !BelongsToMany.org
 !EagerNPlusOne.org
+!EagerNPlusOne.org
+!DatabaseSeeder.org
+!Pagenation.org
 
 /.tool-versions
 /.projectile
 /storage/debugbar/
-/DatabaseSeeder.html
-/Pagenation.html
