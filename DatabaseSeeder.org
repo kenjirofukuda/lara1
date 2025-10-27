@@ -1,0 +1,372 @@
+#+title: Understanding Database Seeders
+#+auther: kenjirofukuda
+#+options: toc:nil num:nil ^:nil
+#+HTML_HEAD_EXTRA: <style> .figure p {text-align: left;}</style>
+#+HTML_HEAD_EXTRA: <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js"></script>
+
+- @see https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/15
+
+* データベース シーダーを使用する理由
+
+#+begin_quote
+ =php artisan migrate:fresh= を実行すると、データベーステーブルは再作成されますが、空になります。毎回手動でデータを挿入するのは面倒なので、シーダーはこのプロセスを自動化します。
+#+end_quote
+
+* Laravelのシーダー
+
+#+begin_quote
+シーダーはディレクトリ内に配置されるクラスです =database/seeders= 。デフォルト =DatabaseSeeder= クラスは、複数のシーダーを実行するためのエントリポイントとなります。
+
+シーダーを実行するには、次を使用します。
+#+end_quote
+
+#+begin_src bash
+php artisan db:seed
+#+end_src
+
+#+begin_example
+
+   INFO  Seeding database.  
+
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[HY000]: General error: 1 table users has no column named name (Connection: sqlite, SQL: insert into "users" ("first_name", "last_name", "email", "email_verified_at", "password", "remember_token", "name", "updated_at", "created_at") values (John, Langosh, test@example.com, 2025-10-27 02:15:43, $2y$12$DZjvQDkoRs7lADkHK8abD.HJkUkZ.xyvnWED6wfxiVZEkNNkbf45G, noQcVQmdlY, Test User, 2025-10-27 02:15:43, 2025-10-27 02:15:43))
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:824
+    820▕                     $this->getName(), $query, $this->prepareBindings($bindings), $e
+    821▕                 );
+    822▕             }
+    823▕ 
+  ➜ 824▕             throw new QueryException(
+    825▕                 $this->getName(), $query, $this->prepareBindings($bindings), $e
+    826▕             );
+    827▕         }
+    828▕     }
+
+      +17 vendor frames 
+
+  18  database/seeders/DatabaseSeeder.php:18
+      Illuminate\Database\Eloquent\Factories\Factory::create()
+      +23 vendor frames 
+
+  42  artisan:16
+      Illuminate\Foundation\Application::handleCommand()
+
+
+#+end_example
+
+これは、当初の性と名を区別する前のファクトリー情報が残っていた為起こります。これを正します。
+
+#+begin_src diff
+modified   database/seeders/DatabaseSeeder.php
+@@ -16,7 +16,8 @@ public function run(): void
+         // User::factory(10)->create();
+ 
+         User::factory()->create([
+-            'name' => 'Test User',
++            'first_name' => 'Test',
++            'last_name' => 'User',
+             'email' => 'test@example.com',
+         ]);
+     }
+#+end_src
+
+この修正でエラーはなくなりました。
+
+
+* シーダーの作成と実行
+#+begin_quote
+列が見つからないなどのエラーが発生した場合は、シーダーとファクトリがデータベース スキーマと一致していることを確認してください。
+
+移行とシードを 1 つのコマンドで組み合わせることができます。
+#+end_quote
+
+#+begin_src bash
+  php artisan migrate:fresh --seed
+#+end_src
+
+#+begin_quote
+これにより、すべてのテーブルが削除され、移行が実行され、データベースが一度にシードされます。
+#+end_quote
+
+もう一度コマンド
+#+begin_src bash
+  php artisan db:seed
+#+end_src
+を実行したらどうなるでしょう。
+
+#+begin_example
+   INFO  Seeding database.  
+
+
+   Illuminate\Database\UniqueConstraintViolationException 
+
+  SQLSTATE[23000]: Integrity constraint violation: 19 UNIQUE constraint failed: users.email (Connection: sqlite, SQL: insert into "users" ("first_name", "last_name", "email", "email_verified_at", "password", "remember_token", "updated_at", "created_at") values (Test, User, test@example.com, 2025-10-27 02:23:23, $2y$12$8qYvkJ9UbKVlOH3S4wFH4O/Kzt0ujM2f2lb8GzCqSSrHPR3gzgp3y, sTbmLuMTMp, 2025-10-27 02:23:23, 2025-10-27 02:23:23))
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:819
+    815▕         // message to include the bindings with SQL, which will make this exception a
+    816▕         // lot more helpful to the developer instead of just the database's errors.
+    817▕         catch (Exception $e) {
+    818▕             if ($this->isUniqueConstraintError($e)) {
+  ➜ 819▕                 throw new UniqueConstraintViolationException(
+    820▕                     $this->getName(), $query, $this->prepareBindings($bindings), $e
+    821▕                 );
+    822▕             }
+    823▕ 
+
+      +17 vendor frames 
+
+  18  database/seeders/DatabaseSeeder.php:18
+      Illuminate\Database\Eloquent\Factories\Factory::create()
+      +23 vendor frames 
+
+  42  artisan:16
+      Illuminate\Foundation\Application::handleCommand()
+#+end_example
+
+=UNIQUE constraint failed: users.email= つまり、emailアドレスでユニークエラーが発生してしまいます。これを防ぐためには一度データベースを再構築しなければなりません。
+
+#+begin_src bash :results raw
+  php artisan migrate:fresh --seed
+#+end_src
+
+今度はうまく行きました。
+
+* シーダーでのファクトリーの使用
+#+begin_quote
+シーダーは、大量の偽データを迅速に生成するためにファクトリーを使用することが多いです。
+#+end_quote
+
+#+caption: tinker
+#+begin_src bash
+\App\Models\Job::factory(200)->create();
+#+end_src
+
+#+begin_quote
+これにより、ファクトリ定義を使用して 200 個のジョブ レコードが作成されます。
+#+end_quote
+
+この作業を既存のseederに加えてみましょう。
+
+#+begin_src diff
+modified   database/seeders/DatabaseSeeder.php
+@@ -2,6 +2,7 @@
+ 
+ namespace Database\Seeders;
+ 
++use App\Models\Job;
+ use App\Models\User;
+ // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+ use Illuminate\Database\Seeder;
+@@ -20,5 +21,7 @@ public function run(): void
+             'last_name' => 'User',
+             'email' => 'test@example.com',
+         ]);
++
++        Job::factory(200)->create();
+     }
+ }
+
+#+end_src
+
+
+* 柔軟性のための分割シーダー
+#+begin_quote
+データベースのさまざまな部分に対して複数のシーダー クラスを作成できます。
+#+end_quote
+
+#+begin_src bash :results raw
+  php artisan make:seeder JobSeeder
+#+end_src
+
+#+begin_example
+   INFO  Seeder [database/seeders/JobSeeder.php] created successfully.
+#+end_example
+
+
+#+caption: 生成されたJobSeeder.phpのテンプレート
+#+begin_src php
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+
+class JobSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        //
+    }
+}
+#+end_src
+
+ここに先程の200件Job追加のコードを移動し、大本の =DatabaseSeeder= はそのクラスを呼び出すと自動的に =run()= が呼び出されます。
+
+#+caption: JobSheederの修正
+#+begin_src diff
+modified   database/seeders/JobSeeder.php
+@@ -2,6 +2,7 @@
+ 
+ namespace Database\Seeders;
+ 
++use App\Models\Job;
+ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+ use Illuminate\Database\Seeder;
+ 
+@@ -12,6 +13,6 @@ class JobSeeder extends Seeder
+      */
+     public function run(): void
+     {
+-        //
++        Job::factory(200)->create();
+     }
+ }
+#+end_src
+
+#+caption: DatabaseSheederの修正
+#+begin_src diff
+modified   database/seeders/DatabaseSeeder.php
+@@ -2,6 +2,7 @@
+ 
+ namespace Database\Seeders;
+ 
++use App\Models\Job;
+ use App\Models\User;
+ // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+ use Illuminate\Database\Seeder;
+@@ -20,5 +21,7 @@ public function run(): void
+             'last_name' => 'User',
+             'email' => 'test@example.com',
+         ]);
++
+-        Job::factory(200)->create();
++        $this->call(JobSeeder::class);
+     }
+ }
+#+end_src
+
+
+#+begin_src bash :results raw
+  php artisan migrate:fresh --seed
+#+end_src
+
+#+begin_example
+
+  Dropping all tables ............................................ 3.20ms DONE
+
+   INFO  Preparing database.  
+
+  Creating migration table ...................................... 17.02ms DONE
+
+   INFO  Running migrations.  
+
+  0001_01_01_000000_create_users_table .......................... 52.21ms DONE
+  0001_01_01_000001_create_cache_table .......................... 14.03ms DONE
+  0001_01_01_000002_create_jobs_table ........................... 37.00ms DONE
+  2025_10_15_225729_create_job_listings_table ................... 11.02ms DONE
+  2025_10_16_013633_create_posts_table ........................... 7.16ms DONE
+  2025_10_16_174339_create_employers_table ....................... 7.01ms DONE
+  2025_10_22_005338_create_tags_table ........................... 17.12ms DONE
+
+
+   INFO  Seeding database.  
+
+  Database\Seeders\JobSeeder ......................................... RUNNING  
+  Database\Seeders\JobSeeder ................................... 2,958 ms DONE  
+#+end_example
+
+シーダークラスを分けることにより単体で実行することが可能となります。
+
+#+begin_quote
+これにより、シーダーを個別またはグループで実行できるようになり、テストや部分的なデータ更新に役立ちます。
+で、他のシーダーを呼び出します。
+#+end_quote
+
+#+caption: DatabaseSeeder 
+#+begin_src php
+public function run()
+{
+    $this->call([
+        UserSeeder::class,
+        JobSeeder::class,
+    ]);
+}
+#+end_src
+
+=DatabaseSeeder= というクラス名はシーダークラスを指定しない場合のデフォルトを意味します。引数を省略すると =DatabaseSheeder= の =run= が呼び出されます。
+
+#+begin_src bash :results raw
+php artisan help db:seed
+#+end_src
+
+#+begin_example
+Description:
+  Seed the database with records
+
+Usage:
+  db:seed [options] [--] [<class>]
+
+Arguments:
+  class                      The class name of the root seeder
+
+Options:
+      --class[=CLASS]        The class name of the root seeder [default: "Database\Seeders\DatabaseSeeder"]
+      --database[=DATABASE]  The database connection to seed
+      --force                Force the operation to run when in production
+  -h, --help                 Display help for the given command. When no command is given display help for the list command
+      --silent               Do not output any message
+  -q, --quiet                Only errors are displayed. All other output is suppressed
+  -V, --version              Display this application version
+      --ansi|--no-ansi       Force (or disable --no-ansi) ANSI output
+  -n, --no-interaction       Do not ask any interactive question
+      --env[=ENV]            The environment the command should run under
+  -v|vv|vvv, --verbose       Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug
+#+end_example
+
+クラスを単体で指定するオプションがあります。
+#+begin_example
+      --class[=CLASS]        The class name of the root seeder [default: "Database\Seeders\DatabaseSeeder"]
+#+end_example
+
+#+caption: JobSeeder単体を実行
+#+begin_src bash :results raw
+  php artisan db:seed --class=JobSeeder
+#+end_src
+
+#+begin_example
+   INFO  Seeding database.  
+#+end_example
+
+
+#+begin_src bash :results raw :exports both :eval no-export :dir (file-name-directory (buffer-file-name))
+sqlite3 ./database/database.sqlite <<EOF
+.mode table
+select count(*) as count from "job_listings";
+.quit
+EOF
+#+end_src
+
+#+RESULTS:
++-------+
+| count |
++-------+
+| 400   |
++-------+
+
+初期の200件+今回の単体シードで計400件のデータになっています。
+
+* まとめ
+- シーダーはデータベースへのデータの入力を自動化します。
+- シーダーを実行するために使用します =php artisan db:seed= 。
+- 移行とシードを と組み合わせます =migrate:fresh --seed= 。
+- ファクトリーはシーダー内で偽のデータを効率的に生成します。
+- モジュール式で柔軟なデータ設定のための分割シーダー。
+- シーディングの練習を続けて、16 日目のフォームに備えてください。
+
+

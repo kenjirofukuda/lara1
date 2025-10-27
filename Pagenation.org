@@ -1,0 +1,180 @@
+#+title: All You Need to Know About Pagination
+#+auther: kenjirofukuda
+#+options: toc:nil num:nil ^:nil
+#+HTML_HEAD_EXTRA: <style> .figure p {text-align: left;}</style>
+#+HTML_HEAD_EXTRA: <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js"></script>
+
+- @see https://laracasts.com/series/30-days-to-learn-laravel-11/episodes/14
+
+* ページネーションを使用する理由
+#+begin_quote
+一度に数千件ものレコードを取得すると、サーバーとブラウザに過負荷がかかる可能性があります。ページネーションを使用すると、ページごとに取得・表示されるレコード数を制限し、パフォーマンスとユーザーエクスペリエンスを向上させることができます。
+#+end_quote
+
+* ページネーションの実装
+#+begin_quote
+クエリを次のように置き換えます。
+#+end_quote
+
+#+begin_src php
+$jobs = Job::with('employer')->paginate(3);
+#+end_src
+
+#+begin_quote
+これにより、ページごとに 3 つの求人とその雇用主が取得されます。
+#+end_quote
+
+#+begin_src diff
+@@ -18,7 +18,7 @@
+ });
+ 
+ Route::get('/jobs', function () {
+-    $jobs = Job::with('employer')->get();
++    $jobs = Job::with('employer')->paginate(3);
+     return View('jobs', ['jobs' => $jobs]);
+ });
+ 
+
+#+end_src
+
+この修正で得られるのは結果の絞り込みだけで、ナビゲーションそのものは出来ません。
+ただし、urlに ~?page=2~ を付加することで表示することは出来ます。
+
+~?page=~ に不適切なでたらめな値を入力した場合、なかったものとしてスルーされるようにガードはかかっています。
+
+* ページネーションリンクの表示
+#+begin_quote
+Blade ビューで、次のようにページ区切りリンクをレンダリングします。
+#+end_quote
+
+#+begin_src php
+{{ $jobs->links() }}
+#+end_src
+
+#+begin_quote
+Laravel は、デフォルトで Tailwind CSS を使用すると仮定して、スタイル設定されたページ区切りコントロールを自動的に生成します。
+#+end_quote
+
+#+begin_src diff
+modified   resources/views/jobs.blade.php
+@@ -10,4 +10,7 @@
+             </a>
+         @endforeach
+     </div>
++    <div>
++        {{ $jobs->links() }}
++    </div>
+ </x-layout>
+#+end_src
+
+この修正によりナビゲーションは確かに表示されたが、動画と異なりテーマがdarkになっている。
+
+* ページネーションビューのカスタマイズ
+#+begin_quote
+ページネーション マークアップをカスタマイズしたり、Bootstrap などの別の CSS フレームワークを使用したりする場合は、ページネーション ビューを公開します。
+#+end_quote
+
+ビデオと文字起こしではコマンドに以下の違いがありますが、同じ結果を導き出せます。
+
+#+caption: ビデオ
+#+begin_src bash
+php artisan vendor:publish
+#+end_src
+引数を伴わないと、どのパッケージを対象とするかのプロンプトが表示されます。
+
+#+begin_example
+ ┌ Which provider or tag's files would you like to publish? ────┐
+ │ Tag: laravel-pagination                                      │
+ └──────────────────────────────────────────────────────────────┘
+
+   INFO  Publishing [laravel-pagination] assets.
+
+  Copying directory [vendor/laravel/framework/src/Illuminate/Pagination/resources/views] to [resources/views/vendor/pagination]  DONE
+#+end_example
+
+
+#+caption: 文字起こし
+#+begin_src bash
+php artisan vendor:publish --tag=laravel-pagination
+#+end_src
+引数を伴わないと、プロンプト無しでダイレクトに実行されます。
+
+
+#+begin_quote
+これにより、ページ区切りビューがresources/views/vendor/pagination編集用のディレクトリにコピーされます。
+
+デフォルトのページネーションビューを切り替えるには（例：Bootstrap 5）、次のように設定します
+#+end_quote
+
+#+caption: AppServiceProvider
+#+begin_src php
+use Illuminate\Pagination\Paginator;
+
+public function boot()
+{
+    Paginator::useBootstrapFive();
+}
+#+end_src
+
+
+* ページネーションの種類
+
+limit に指定される値がページに表示される数+1にしてあるのは、それ以上データがあるかどうかの判定に使うためである。
+「前へ」や「次へ」などのボタンの有効無効の判定がそれである。
+
+** 標準ページ区切り
+
+ページ番号とナビゲーション リンクを表示します。
+
+#+caption: paginate(3)
+#+begin_src sql
+  select count(*) as aggregate from "job_listings"
+  select * from "job_listings" limit 3 offset 3
+  select * from "employers" where "employers"."id" in (4, 5, 6)
+#+end_src
+
+** シンプルなページ区切り
+
+「前へ」と「次へ」のリンクのみを表示し、クエリの複雑さを軽減します。
+
+#+caption: simplePginate(3)
+#+begin_src sql
+  select * from "job_listings" limit 4 offset 3
+  select * from "employers" where "employers"."id" in (4, 5, 6, 7)
+#+end_src
+
+** カーソル ページ区切り
+
+大規模なデータセットで効率的なページ区切りを行うためにカーソル (エンコードされた文字列) を使用しますが、直接的なページ番号ナビゲーションはありません。
+
+#+caption: cursorPaginate(3)
+#+begin_src sql
+  select * from "job_listings" where ("job_listings"."id" > 3) order by "job_listings"."id" asc limit 4
+  select * from "employers" where "employers"."id" in (4, 5, 6, 7)
+#+end_src
+
+#+caption: cursorPaginate時のURL
+#+begin_example
+http://127.0.0.1:8000/jobs?cursor=eyJqb2JfbGlzdGluZ3MuaWQiOjMsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0
+#+end_example
+
+~cursor~ 以降の文字列は ~base64~ 文字列の末尾から ~=~ を取り除いたものである。
+
+#+begin_src bash :results raw
+#!/usr/bin/env bash
+
+encoded_string="eyJqb2JfbGlzdGluZ3MuaWQiOjMsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0="
+decoded_string=$(echo "$encoded_string" | base64 --decode)
+
+echo "$decoded_string"
+#+end_src
+
+#+begin_src javascript
+  {
+      "job_listings.id": 3,
+      "_pointsToNextItems": true
+  }
+#+end_src
+
+* その他のリンク
+

@@ -52,6 +52,7 @@ v24.10.0
 
 * 消化済みのコース
 ** laracssts
+- [[file:DatabaseSeeder.org]] (15)
 - [[file:Pagenation.org]] (14)
 - [[file:EagerNPlusOne.org]] (13)
 - [[file:BelongsToMany.org]] (12)

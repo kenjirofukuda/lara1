@@ -39,3 +39,5 @@ Thumbs.db
 /.tool-versions
 /.projectile
 /storage/debugbar/
+/DatabaseSeeder.html
+/Pagenation.html
